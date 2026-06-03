@@ -1,0 +1,15 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;color:#c9d1d9;background:#0d1117;width:300px;padding:16px}
+h1{font-size:15px;color:#58a6ff;margin-bottom:12px}
+.stat{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #21262d}
+.btn{display:block;width:100%;padding:8px;text-align:center;font-size:13px;font-weight:600;border:1px solid #30363d;border-radius:6px;cursor:pointer;background:#21262d;color:#c9d1d9;margin-top:8px}
+.btn:hover{background:#30363d}
+</style></head><body>
+<h1>✏️ AI Pen</h1>
+<div class="stat"><span>今日已用</span><span id="count">-</span></div>
+<div class="stat"><span>总计</span><span id="total">-</span></div>
+<button class="btn" id="settings">⚙️ 设置 API Key</button>
+<p style="margin-top:8px;font-size:11px;color:#8b949e;text-align:center">选中任意文字 → AI 改写/翻译/总结</p>
+<script src="popup.js"></script>
+</body></html>

@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "AI Pen",
+  "version": "1.0.0",
+  "description": "AI智能写作助手 — 选中文字即可改写/翻译/总结，基于DeepSeek",
+  "author": {"email": "tulv202900@163.com"},
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["https://api.deepseek.com/*"],
+  "background": {"service_worker": "background.js", "type": "module"},
+  "content_scripts": [{"matches": ["<all_urls>"], "js": ["content.js"], "css": ["style.css"], "run_at": "document_end"}],
+  "action": {"default_popup": "popup.html", "default_icon": {"16":"icon16.png","48":"icon48.png","128":"icon128.png"}},
+  "options_ui": {"page": "options.html","open_in_tab":true},
+  "icons": {"16":"icon16.png","48":"icon48.png","128":"icon128.png"}
+}
