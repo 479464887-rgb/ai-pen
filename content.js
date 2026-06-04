@@ -78,14 +78,34 @@ async function handleAction(text, action) {
   try {
     const { settings } = await chrome.storage.sync.get('settings');
     const limit = await chrome.runtime.sendMessage({ type: 'CHECK_LIMIT' });
-    if (!limit.allowed) {
-      resultBox.innerHTML = `<div style="color:#f85149">今日免费次数已用完（${limit.total}次/天）。请前往设置配置API Key。</div>`;
+    if (!limit.allowed && !limit.pro) {
+      resultBox.innerHTML = `
+        <div style="text-align:center;padding:20px">
+          <div style="font-size:36px;margin-bottom:12px">🚀</div>
+          <div style="font-size:16px;font-weight:600;margin-bottom:8px;color:#f0c040">今日免费次数已用完</div>
+          <div style="font-size:13px;color:#8b949e;margin-bottom:16px">升级 Pro 版，无限使用 + 优先响应</div>
+          <button id="aipen-upgrade" style="background:#f0c040;color:#0d1117;border:none;padding:10px 32px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">✨ 升级 Pro</button>
+          <div style="margin-top:8px"><a href="#" id="aipen-login" style="color:#58a6ff;font-size:11px;text-decoration:none">已购买？登录激活</a></div>
+        </div>`;
+      document.getElementById('aipen-upgrade').onclick = () => chrome.runtime.sendMessage({ type: 'OPEN_PAYMENT' });
+      document.getElementById('aipen-login').onclick = (e) => { e.preventDefault(); chrome.runtime.sendMessage({ type: 'OPEN_LOGIN' }); };
       return;
     }
 
     const resp = await chrome.runtime.sendMessage({ type: 'AI_ACTION', text, action, settings });
     if (resp.error) {
       resultBox.innerHTML = `<div style="color:#f85149">错误：${resp.error}</div>`;
+    } else if (resp.limitReached) {
+      resultBox.innerHTML = `
+        <div style="text-align:center;padding:20px">
+          <div style="font-size:36px;margin-bottom:12px">🚀</div>
+          <div style="font-size:16px;font-weight:600;margin-bottom:8px;color:#f0c040">今日免费次数已用完</div>
+          <div style="font-size:13px;color:#8b949e;margin-bottom:16px">升级 Pro 版，无限使用 + 优先响应</div>
+          <button id="aipen-upgrade" style="background:#f0c040;color:#0d1117;border:none;padding:10px 32px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">✨ 升级 Pro</button>
+          <div style="margin-top:8px"><a href="#" id="aipen-login" style="color:#58a6ff;font-size:11px;text-decoration:none">已购买？登录激活</a></div>
+        </div>`;
+      document.getElementById('aipen-upgrade').onclick = () => chrome.runtime.sendMessage({ type: 'OPEN_PAYMENT' });
+      document.getElementById('aipen-login').onclick = (e) => { e.preventDefault(); chrome.runtime.sendMessage({ type: 'OPEN_LOGIN' }); };
     } else {
       resultBox.innerHTML = `
         <div style="margin-bottom:12px;font-weight:600;color:#58a6ff;display:flex;justify-content:space-between">

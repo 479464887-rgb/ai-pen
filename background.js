@@ -1,4 +1,8 @@
 // AI Pen - Background
+importScripts('ExtPay.js');
+const extpay = ExtPay('ai-pen');
+extpay.startBackground();
+
 const API = 'https://api.deepseek.com/v1/chat/completions';
 const DEFAULTS = { deepseekKey: '', dailyLimit: 20, language: 'zh' };
 
@@ -23,16 +27,33 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
     case 'SAVE_SETTINGS':
       chrome.storage.sync.set({ settings: req.settings }).then(() => sendResponse({ success: true }));
       return true;
+    case 'GET_PAID_STATUS':
+      extpay.getUser().then(sendResponse);
+      return true;
+    case 'OPEN_PAYMENT':
+      extpay.openPaymentPage();
+      sendResponse({ success: true });
+      return false;
+    case 'OPEN_LOGIN':
+      extpay.openLoginPage();
+      sendResponse({ success: true });
+      return false;
   }
 });
 
 async function checkLimit() {
+  // Pro users have unlimited access
+  try {
+    const user = await extpay.getUser();
+    if (user.paid) return { allowed: true, remaining: 999, total: 999, pro: true };
+  } catch (e) { /* offline, fall through */ }
+
   const { settings } = await chrome.storage.sync.get('settings');
   const limit = (settings || DEFAULTS).dailyLimit || 20;
   const { dailyCount, date } = await chrome.storage.local.get(['dailyCount', 'date']);
   const today = new Date().toDateString();
   const count = date === today ? (dailyCount || 0) : 0;
-  return { allowed: count < limit, remaining: limit - count, total: limit };
+  return { allowed: count < limit, remaining: limit - count, total: limit, pro: false };
 }
 
 async function handleAction({ text, action, settings }) {
@@ -65,7 +86,7 @@ async function handleAction({ text, action, settings }) {
   if (!resp.ok) throw new Error(`API ${resp.status}`);
   const data = await resp.json();
 
-  // 更新计数
+  // 更新计数（仅免费用户）
   const { dailyCount, date } = await chrome.storage.local.get(['dailyCount', 'date']);
   const today = new Date().toDateString();
   const count = date === today ? (dailyCount || 0) + 1 : 1;
