@@ -1,26 +1,62 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;color:#c9d1d9;background:#0d1117;width:300px;padding:16px}
-h1{font-size:15px;color:#58a6ff;margin-bottom:12px}
-.badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:8px;font-weight:600;margin-left:6px}
-.badge-pro{background:#f0c040;color:#0d1117}
-.badge-free{background:#30363d;color:#8b949e}
-.stat{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #21262d}
-.btn{display:block;width:100%;padding:8px;text-align:center;font-size:13px;font-weight:600;border:1px solid #30363d;border-radius:6px;cursor:pointer;background:#21262d;color:#c9d1d9;margin-top:8px}
-.btn:hover{background:#30363d}
-.btn-pro{background:#f0c040;color:#0d1117;border-color:#f0c040}
-.btn-pro:hover{background:#ffd700}
-</style></head><body>
-<h1>✏️ AI Pen<span id="badge"></span></h1>
-<div id="pro-banner" style="display:none;background:linear-gradient(135deg,#f0c04020,#daa52020);border:1px solid #f0c04040;border-radius:8px;padding:10px;margin-bottom:8px;text-align:center">
-  <div style="font-size:14px;font-weight:600;color:#f0c040;margin-bottom:4px">🚀 Pro 无限畅用</div>
-  <div style="font-size:11px;color:#8b949e">无限次数 · 优先响应</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AI Pen</title>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--border:#30363d;--text:#c9d1d9;--text2:#8b949e;--accent:#58a6ff;--green:#3fb950;--yellow:#f0c040;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);width:380px;font-family:-apple-system,BlinkMacSystemFont,sans-serif;font-size:13px;}
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;}
+.header h1{font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px;}
+.badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;}
+.badge-free{background:rgba(88,166,255,0.15);color:var(--accent);}
+.badge-pro{background:rgba(240,192,64,0.15);color:var(--yellow);}
+.usage{font-size:11px;color:var(--text2);}
+.content{padding:12px 14px;}
+.actions{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.chip{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:12px;cursor:pointer;color:var(--text);transition:all 0.15s;}
+.chip:hover{border-color:var(--accent);color:var(--accent);}
+.chip.active{background:rgba(88,166,255,0.15);border-color:var(--accent);color:var(--accent);}
+textarea{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;color:var(--text);font-size:13px;resize:vertical;min-height:100px;font-family:inherit;}
+textarea:focus{outline:none;border-color:var(--accent);}
+.output{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;margin-top:10px;min-height:60px;font-size:13px;line-height:1.5;display:none;}
+.output.show{display:block;}
+.loading{text-align:center;padding:16px;color:var(--text2);display:none;}
+.loading.show{display:block;}
+.btn{display:block;width:100%;background:#238636;color:#fff;border:none;border-radius:6px;padding:10px;font-size:14px;cursor:pointer;font-weight:500;margin-top:10px;}
+.btn:hover{background:#2ea043;}
+.btn:disabled{background:#30363d;color:var(--text2);cursor:default;}
+.error{color:#f85149;font-size:12px;margin-top:6px;display:none;}
+.error.show{display:block;}
+.footer{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-top:1px solid var(--border);font-size:11px;color:var(--text2);}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.6s linear infinite;margin-right:8px;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>✏️ AI Pen</h1>
+  <span id="plan-badge" class="badge badge-free">Free</span>
 </div>
-<div class="stat"><span>今日已用</span><span id="count">-</span></div>
-<div class="stat"><span>总计</span><span id="total">-</span></div>
-<button class="btn btn-pro" id="upgrade" style="display:none">✨ 升级 Pro</button>
-<button class="btn" id="settings">⚙️ 设置 API Key</button>
-<button class="btn" id="login-btn" style="display:none">🔑 已购买？登录激活</button>
-<p style="margin-top:8px;font-size:11px;color:#8b949e;text-align:center">选中任意文字 → AI 改写/翻译/总结</p>
+<div class="content">
+  <div id="usage-info" class="usage" style="margin-bottom:8px;"></div>
+  <div class="actions">
+    <button class="chip active" data-mode="rewrite">Rewrite</button>
+    <button class="chip" data-mode="translate">Translate</button>
+    <button class="chip" data-mode="summarize">Summarize</button>
+  </div>
+  <textarea id="input" placeholder="Type or paste text, or select text on any page and use the shortcut..."></textarea>
+  <button id="process-btn" class="btn">Process</button>
+  <div id="loading" class="loading"><span class="spinner"></span> Processing...</div>
+  <div id="error" class="error"></div>
+  <div id="output" class="output"></div>
+</div>
+<div class="footer">
+  <span id="remaining"></span>
+  <a href="https://devkit-tools.xyz/pricing" target="_blank" style="color:var(--accent);">Upgrade to Pro</a>
+</div>
 <script src="popup.js"></script>
-</body></html>
+</body>
+</html>

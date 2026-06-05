@@ -135,3 +135,11 @@ style.textContent = `
   #aipen-close{color:#8b949e!important;font-size:18px!important;padding:4px 8px!important}
 `;
 document.head.appendChild(style);
+
+// Handle getSelectedText message from popup
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'getSelectedText') {
+    const text = window.getSelection()?.toString()?.trim() || '';
+    sendResponse({ text });
+  }
+});

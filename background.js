@@ -1,101 +1,92 @@
-// AI Pen - Background
-importScripts('ExtPay.js');
-const extpay = ExtPay('ai-pen');
-extpay.startBackground();
+// AI Pen — Background Service Worker
+// Handles DeepSeek API calls and usage tracking
 
-const API = 'https://api.deepseek.com/v1/chat/completions';
-const DEFAULTS = { deepseekKey: '', dailyLimit: 20, language: 'zh' };
+const API_URL = 'https://api.deepseek.com/chat/completions';
+const DAILY_LIMIT = 20;
 
-chrome.runtime.onInstalled.addListener(async () => {
-  const { settings } = await chrome.storage.sync.get('settings');
-  if (!settings) await chrome.storage.sync.set({ settings: DEFAULTS });
-  const t = new Date();
-  await chrome.storage.local.set({ dailyCount: 0, date: t.toDateString() });
-});
+function today() { return new Date().toISOString().split('T')[0]; }
 
-chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
-  switch (req.type) {
-    case 'AI_ACTION':
-      handleAction(req).then(sendResponse).catch(e => sendResponse({ error: e.message }));
-      return true;
-    case 'CHECK_LIMIT':
-      checkLimit().then(sendResponse);
-      return true;
-    case 'GET_SETTINGS':
-      chrome.storage.sync.get('settings').then(sendResponse);
-      return true;
-    case 'SAVE_SETTINGS':
-      chrome.storage.sync.set({ settings: req.settings }).then(() => sendResponse({ success: true }));
-      return true;
-    case 'GET_PAID_STATUS':
-      extpay.getUser().then(sendResponse);
-      return true;
-    case 'OPEN_PAYMENT':
-      extpay.openPaymentPage();
-      sendResponse({ success: true });
-      return false;
-    case 'OPEN_LOGIN':
-      extpay.openLoginPage();
-      sendResponse({ success: true });
-      return false;
-  }
-});
-
-async function checkLimit() {
-  // Pro users have unlimited access
-  try {
-    const user = await extpay.getUser();
-    if (user.paid) return { allowed: true, remaining: 999, total: 999, pro: true };
-  } catch (e) { /* offline, fall through */ }
-
-  const { settings } = await chrome.storage.sync.get('settings');
-  const limit = (settings || DEFAULTS).dailyLimit || 20;
-  const { dailyCount, date } = await chrome.storage.local.get(['dailyCount', 'date']);
-  const today = new Date().toDateString();
-  const count = date === today ? (dailyCount || 0) : 0;
-  return { allowed: count < limit, remaining: limit - count, total: limit, pro: false };
+async function getApiKey() {
+  const data = await chrome.storage.local.get(['apiKey']);
+  return data.apiKey || 'sk-3d248dabf05f4837ab3ec3577df95ce0';
 }
 
-async function handleAction({ text, action, settings }) {
-  const s = settings || DEFAULTS;
-  if (!s.deepseekKey) throw new Error('请先设置 DeepSeek API Key');
+async function checkUsage() {
+  const data = await chrome.storage.local.get(['usage', 'usageDate', 'pro']);
+  const isPro = data.pro || false;
+  const d = today();
+  if (data.usageDate !== d) { await chrome.storage.local.set({ usage: 0, usageDate: d }); }
+  const used = (data.usageDate === d ? data.usage || 0 : 0);
+  return { allowed: isPro || used < DAILY_LIMIT, remaining: isPro ? Infinity : DAILY_LIMIT - used, pro: isPro };
+}
 
-  const prompts = {
-    rewrite: `请改写以下文字，保持原意但用更流畅优美的中文表达：\n\n${text}`,
-    translate_en: `请将以下中文翻译成英文：\n\n${text}`,
-    translate_zh: `Translate the following to Chinese:\n\n${text}`,
-    summarize: `请用简洁的语言总结以下内容，提取核心要点：\n\n${text}`,
-    expand: `请将以下内容扩展丰富，增加细节和例子：\n\n${text}`,
-    polish: `请润色以下文字，修正语法错误，提升专业性：\n\n${text}`,
-    custom: text
+async function incrementUsage() {
+  const data = await chrome.storage.local.get(['usage', 'usageDate']);
+  await chrome.storage.local.set({ usage: (data.usageDate === today() ? data.usage || 0 : 0) + 1, usageDate: today() });
+}
+
+async function callDeepSeek(text, action) {
+  const apiKey = await getApiKey();
+  const systemPrompts = {
+    rewrite: 'You are a professional writing assistant. Rewrite the following text to be clearer and more professional. Output only the rewritten text.',
+    translate: 'Translate the following text to English. If already English, translate to Chinese. Output only translation.',
+    translate_en: 'Translate the following text to English. Output only the translation.',
+    summarize: 'Summarize the following text in 2-3 concise bullet points. Output only the summary.',
+    expand: 'Expand the following text with more detail and examples while preserving the original meaning.',
+    polish: 'Polish the following text to be more elegant and natural. Output only the polished version.'
   };
 
-  const prompt = prompts[action] || text;
-
-  const resp = await fetch(API, {
+  const sysPrompt = systemPrompts[action] || systemPrompts.rewrite;
+  const response = await fetch(API_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${s.deepseekKey}` },
-    body: JSON.stringify({
-      model: 'deepseek-v4-flash',
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.7,
-      max_tokens: 2048
-    })
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({ model: 'deepseek-chat', messages: [{ role: 'system', content: sysPrompt }, { role: 'user', content: text }], temperature: 0.7, max_tokens: 1000 })
   });
 
-  if (!resp.ok) throw new Error(`API ${resp.status}`);
-  const data = await resp.json();
-
-  // 更新计数（仅免费用户）
-  const { dailyCount, date } = await chrome.storage.local.get(['dailyCount', 'date']);
-  const today = new Date().toDateString();
-  const count = date === today ? (dailyCount || 0) + 1 : 1;
-  await chrome.storage.local.set({ dailyCount: count, date: today });
-
-  // 保存历史
-  const { history } = await chrome.storage.local.get('history');
-  const entry = { id: Date.now(), action, input: text.substring(0, 200), output: data.choices[0].message.content.substring(0, 500), time: new Date().toISOString() };
-  await chrome.storage.local.set({ history: [entry, ...(history || [])].slice(0, 100) });
-
-  return { success: true, result: data.choices[0].message.content };
+  if (!response.ok) { const err = await response.text(); throw new Error(`API ${response.status}`); }
+  const data = await response.json();
+  return data.choices[0].message.content;
 }
+
+// Single message listener
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  // Popup: process text
+  if (request.action === 'aiProcess') {
+    (async () => {
+      try {
+        const usage = await checkUsage();
+        if (!usage.allowed) { sendResponse({ error: 'Daily limit reached', limitReached: true }); return; }
+        const result = await callDeepSeek(request.text, request.mode);
+        await incrementUsage();
+        sendResponse({ result, remaining: (await checkUsage()).remaining });
+      } catch (err) { sendResponse({ error: err.message }); }
+    })();
+    return true;
+  }
+
+  // Popup: get usage
+  if (request.action === 'getUsage') {
+    (async () => { sendResponse(await checkUsage()); })();
+    return true;
+  }
+
+  // Content script: check limit
+  if (request.type === 'CHECK_LIMIT') {
+    (async () => { sendResponse(await checkUsage()); })();
+    return true;
+  }
+
+  // Content script: AI action
+  if (request.type === 'AI_ACTION') {
+    (async () => {
+      try {
+        const usage = await checkUsage();
+        if (!usage.allowed) { sendResponse({ limitReached: true }); return; }
+        const result = await callDeepSeek(request.text, request.action);
+        await incrementUsage();
+        sendResponse({ result });
+      } catch (err) { sendResponse({ error: err.message }); }
+    })();
+    return true;
+  }
+});
