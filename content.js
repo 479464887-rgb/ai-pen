@@ -94,7 +94,8 @@ async function handleAction(text, action) {
 
     const resp = await chrome.runtime.sendMessage({ type: 'AI_ACTION', text, action, settings });
     if (resp.error) {
-      resultBox.innerHTML = `<div style="color:#f85149">错误：${resp.error}</div>`;
+      resultBox.textContent = `错误：${resp.error}`;
+      resultBox.style.cssText = 'color:#f85149;padding:12px';
     } else if (resp.limitReached) {
       resultBox.innerHTML = `
         <div style="text-align:center;padding:20px">
@@ -121,7 +122,9 @@ async function handleAction(text, action) {
       };
     }
   } catch (e) {
-    resultBox.innerHTML = `<div style="color:#f85149">连接失败：${e.message}</div>`;
+    resultBox.textContent = `连接失败：${e.message}`;
+    resultBox.style.cssText = 'color:#f85149;padding:12px';
+    console.error('AI Pen: request failed', e);
   }
 }
 

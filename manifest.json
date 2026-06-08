@@ -1,5 +1,6 @@
 {
   "manifest_version": 3,
+  "minimum_chrome_version": "88",
   "name": "AI Pen",
   "version": "1.0.0",
   "description": "AI智能写作助手 — 选中文字即可改写/翻译/总结，基于DeepSeek",
