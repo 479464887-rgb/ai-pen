@@ -19,19 +19,19 @@ footer{margin-top:40px;padding-top:20px;border-top:1px solid #30363d;font-size:1
 <p><strong>Last updated: June 4, 2026</strong></p>
 
 <h2>Data Collection</h2>
-<p>The AI Pen extension <strong>does not collect</strong> any personal information, browsing history, or usage data. We value your privacy.</p>
+<p>AI Pen Expand<strong>不收集</strong>任何个人身份信息、浏览History或使用Data。我们重视您的隐私。</p>
 
-<h2>API Usage</h2>
-<p>Your selected text is sent to the DeepSeek API for AI processing. The API Key is stored in your local Chrome Storage and used only for calling the DeepSeek API.</p>
+<h2>API 使用</h2>
+<p>您选中的文本会发送到 DeepSeek API 进行AI处理。API Key Storage在您本地的 Chrome Storage 中，仅用于调用 DeepSeek 接口。</p>
 <p>Text content is discarded after DeepSeek API returns the result. We <strong>do not save, record, or upload</strong> any text content.</p>
 
 <h2>Storage</h2>
-<p>Only the following data is stored locally in your browser: API Key, daily usage count, and recent rewrite history.</p>
+<p>仅Storage以下Data在您本地浏览器：API Key、每日使用计数、最近的RewriteHistory记录。</p>
 
 <h2>Permissions</h2>
 <ul>
 <li><strong>activeTab</strong>：Read selected text on the current page</li>
-<li><strong>storage</strong>：Save settings and usage history</li>
+<li><strong>storage</strong>：SaveSettings和使用记录</li>
 <li><strong>host_permissions</strong>：Call the DeepSeek API</li>
 </ul>
 
